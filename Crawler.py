@@ -6,7 +6,7 @@ import Parser
 
 class Crawler:
     
-    def __init__(self, max_depth=1):
+    def __init__(self, max_depth=1, batch_limit=5000):
         
         # Connect to mongo instance
         myclient = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -24,6 +24,7 @@ class Crawler:
         
         # Stopping indicator
         self.stop_search = False
+        self.batch_limit = batch_limit
         
         # Vars
         self.urls = []
@@ -61,7 +62,7 @@ class Crawler:
     
     def crawl(self, url, depth):
         
-        if len(self.tracklist_docs) == 5000:
+        if len(self.tracklist_docs) == self.batch_limit:
             print('STOPPING SEARCH')
             self.stop_search = True
         
@@ -69,11 +70,11 @@ class Crawler:
         if (depth == self.max_depth) or (self.stop_search):
             return
         
-        # Check if already reached by search
-        if self.page_hash.get(url, 0) == False:
+        # Check if already reached by search or in frontier
+        if (self.page_hash.get(url, 0) == False) and (url not in self.urls):
             
             # Only sleep if about to request
-            time.sleep(10)
+            time.sleep(5)
             
             # Make http request
             try:
@@ -115,7 +116,7 @@ class Crawler:
                 if ('www.1001tracklists.com' in url_chunk) and\
                    ('#tlp' not in url_chunk) and\
                    ('.xml' not in url_chunk):
-                    
+
                     self.urls.append(url)
                     self.crawl(url_chunk, depth + 1)
                     
