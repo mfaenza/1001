@@ -12,9 +12,9 @@ class Parser:
         self.url_html_map = db['url_html_map']
         self.tracklist_collection = db['tracklist_docs']
         self.played_collection = db['played_docs']
-        self.track_collection = db['track_docs']
+        self.track_collection = db['track_docs_fixed']
         self.artist_collection = db['artist_docs']
-        self.sequential_collection = db['sequential_docs']
+        self.sequential_collection = db['sequential_docs_fixed']
         
         self.track_docs = []
         self.played_docs = []
@@ -329,8 +329,12 @@ class Parser:
                     edge_docs[_id] = \
                                         {
                                         #'_id': _id,
-                                        'track1': key,
-                                        'track2': other_key,
+                                        'track1_name': track_docs[key]['name'],
+                                        'track1_artist': track_docs[key]['artist'],
+                                        'track1_remixer': track_docs[key]['remixer'],
+                                        'track2_name': track_docs[other_key]['name'],
+                                        'track2_artist': track_docs[key]['artist'],
+                                        'track2_remixer': track_docs[key]['remixer'],
                                         'url': url
                                         }
         return edge_docs
@@ -340,7 +344,8 @@ class Parser:
         Allows for later "next track lookup" functionality
 
         '''
-        enumerated_tracks = [(track_docs[key]['track_num'], key) for key in list(track_docs.keys())]
+        enumerated_tracks = [(track_docs[key]['track_num'], track_docs[key])\
+                                 for key in list(track_docs.keys())]
         enumerated_tracks = sorted(enumerated_tracks, key=lambda x: x[0])
 
         seq_docs = {}
@@ -348,16 +353,20 @@ class Parser:
             _id = '_'.join(\
                           [\
                            url,\
-                           '_'.join(enumerated_tracks[track_idx][1]),\
-                           '_'.join(enumerated_tracks[track_idx+1][1])
+                           '_'.join(enumerated_tracks[track_idx][0]),\
+                           '_'.join(enumerated_tracks[track_idx+1][0])
                           ]
                         )
             seq_docs[_id] = \
                            {
                            #'_id': _id,
                            'url': url,
-                           'first_track': enumerated_tracks[track_idx][1],
-                           'second_track': enumerated_tracks[track_idx+1][1],
+                           'track1_name': enumerated_tracks[track_idx][1]['name'],
+                           'track1_artist': enumerated_tracks[track_idx][1]['artist'],
+                           'track1_remixer': enumerated_tracks[track_idx][1]['remixer'],
+                           'track2_name': enumerated_tracks[track_idx+1][1]['name'],
+                           'track2_artist': enumerated_tracks[track_idx+1][1]['artist'],
+                           'track2_remixer': enumerated_tracks[track_idx+1][1]['remixer'],
                            'first_position': str(enumerated_tracks[track_idx][0]),
                            'second_position': str(enumerated_tracks[track_idx+1][0]),   
                            }
@@ -424,17 +433,19 @@ class Parser:
             for doc in sequential_edges:
                 self.sequential_collection.insert_one(doc)
 
+            self.tracklist_docs.append(url_doc)
             self.played_docs.extend(played_edges)
             self.track_docs.extend(track_edges)
-            self.tracklist_docs.append(url_doc)
             self.artist_docs.extend(artist_edges)        
             self.sequential_docs.extend(sequential_edges)
 
+            print('Len tracklist docs:', len(self.tracklist_docs))
             print('Len played docs:', len(self.played_docs))
             print('Len sequential docs:', len(self.sequential_docs))
             print('Len track docs:', len(self.track_docs))
-            print('Len tracklist docs:', len(self.tracklist_docs))
             print('Len artist docs:', len(self.artist_docs))
         
         except Exception as e:
             print(str(e))
+            
+            
