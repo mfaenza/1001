@@ -1,7 +1,6 @@
 import time
 import pymongo
 from urllib.request import Request, urlopen
-
 import Parser
 
 class Crawler:
@@ -26,10 +25,11 @@ class Crawler:
         self.stop_search = False
         self.batch_limit = batch_limit
         
-        # Vars
-        self.urls = {}
+        # Var for ensuring loops dont occur
+        self.urls_visited = {}
+        
+        # Depth limiter
         self.max_depth = max_depth
-
 
     def find_str(self, s, char, start_index=0):
 
@@ -57,7 +57,7 @@ class Crawler:
     
     def crawl(self, url, depth):
         
-        if len(self.Parser.tracklist_docs) == self.batch_limit:
+        if self.Parser.tracklist_num == self.batch_limit:
             print('STOPPING SEARCH')
             self.stop_search = True
         
@@ -66,7 +66,7 @@ class Crawler:
             return
         
         # Check if already reached by search or in frontier
-        if (self.page_hash.get(url, 0) == False) and (self.urls.get(url, 0) == False):
+        if (self.page_hash.get(url, 0) == False) and (self.urls_visited.get(url, 0) == False):
             
             # Only sleep if about to request
             time.sleep(5)
@@ -96,7 +96,7 @@ class Crawler:
                    ('http' not in url_chunk) and\
                    ('#tlp' not in url_chunk):
                 
-                    self.urls[url] = 1
+                    self.urls_visited[url] = 1
                     new_page = 'https://www.1001tracklists.com' + url_chunk
                     self.crawl(new_page, depth + 1)
                 
@@ -104,7 +104,7 @@ class Crawler:
                    ('http' not in url_chunk) and\
                    ('#tlp' not in url_chunk):
                 
-                    self.urls[url] = 1
+                    self.urls_visited[url] = 1
                     new_page = 'https://www.1001tracklists.com' + url_chunk
                     self.crawl(new_page, depth + 1)
                 
@@ -112,7 +112,7 @@ class Crawler:
                    ('#tlp' not in url_chunk) and\
                    ('.xml' not in url_chunk):
 
-                    self.urls[url] = 1
+                    self.urls_visited[url] = 1
                     self.crawl(url_chunk, depth + 1)
                     
             # Cache url-html map

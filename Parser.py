@@ -16,12 +16,12 @@ class Parser:
         self.artist_collection = db['artist_docs']
         self.sequential_collection = db['sequential_docs_fixed']
         
-        self.track_docs = []
-        self.played_docs = []
-        self.artist_docs = []
-        self.tracklist_docs = []
-        self.sequential_docs = []
-
+        self.track_num = 0
+        self.played_num = 0
+        self.artist_num = 0
+        self.tracklist_num = 0
+        self.sequential_num = 0
+        
     def request(self, url):
 
         req = Request(url,\
@@ -409,19 +409,18 @@ class Parser:
         url_doc['url'] = url
         url_doc['html'] = html
         self.url_html_map.insert_one(url_doc)
-            
+          
         try:
-            
             url_doc.update(self.tracklist_meta_data(html))
             url_doc.update(self.tracklist_general_information(html))
 
             track_docs = self.tracklist_track_data(html)
             url_doc['track_docs'] = track_docs
 
-            track_edges = self.build_track_edges(track_docs, url).values()
-            sequential_edges = self.build_sequential_track_edges(track_docs, url).values()
-            played_edges = self.build_played_playedby_edge(url_doc, url).values()
-            artist_edges = self.build_artist_edges(url_doc, url).values()
+            track_edges = list(self.build_track_edges(track_docs, url).values())
+            sequential_edges = list(self.build_sequential_track_edges(track_docs, url).values())
+            played_edges = list(self.build_played_playedby_edge(url_doc, url).values())
+            artist_edges = list(self.build_artist_edges(url_doc, url).values())
 
             self.tracklist_collection.insert_one(url_doc)
             for doc in track_edges:
@@ -433,19 +432,19 @@ class Parser:
             for doc in sequential_edges:
                 self.sequential_collection.insert_one(doc)
 
-            self.tracklist_docs.append(url_doc)
-            self.played_docs.extend(played_edges)
-            self.track_docs.extend(track_edges)
-            self.artist_docs.extend(artist_edges)        
-            self.sequential_docs.extend(sequential_edges)
+            self.track_num += len(track_edges)
+            self.artist_num += len(artist_edges)
+            self.played_num += len(played_edges)
+            self.sequential_num += len(sequential_edges)
+            self.tracklist_num += 1
 
-            print('Len tracklist docs:', len(self.tracklist_docs))
-            print('Len played docs:', len(self.played_docs))
-            print('Len sequential docs:', len(self.sequential_docs))
-            print('Len track docs:', len(self.track_docs))
-            print('Len artist docs:', len(self.artist_docs))
+            print('Len tracklist docs:', self.tracklist_num)
+            print('Len played docs:', self.played_num)
+            print('Len sequential docs:', self.sequential_num)
+            print('Len track docs:', self.track_num)
+            print('Len artist docs:', self.artist_num)
+        except:
+            pass
         
-        except Exception as e:
-            print(str(e))
             
             
