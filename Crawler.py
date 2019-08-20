@@ -61,12 +61,12 @@ class Crawler:
             print('STOPPING SEARCH')
             self.stop_search = True
         
-        print('Depth:', depth)
+        print('Depth:', depth, self.page_hash.get(url, 0))
         if (depth == self.max_depth) or (self.stop_search):
             return
         
-        # Check if already reached by search or in frontier
-        if (self.page_hash.get(url, 0) == False) and (self.urls_visited.get(url, 0) == False):
+        # Check if already in db
+        if (self.page_hash.get(url, 0) == False):
             
             # Only sleep if about to request
             time.sleep(5)
@@ -76,12 +76,12 @@ class Crawler:
                 html = self.request(url)
             except:
                 return
-            
             print(url)
             
             # If html, parse and extract necessary data 
             if ('/tracklist/' in url):
                 self.parse(url, html)
+                self.page_hash[url] = 1
                     
             index = 0
             # Iterate over links found in html
@@ -92,29 +92,33 @@ class Crawler:
                 url_chunk = html[index:].split('"')[1]
                 
                 # Make sure it is either a referenced tracklist or 1001 page
+                # and not already reached by search
                 if ('/tracklist/' in url_chunk) and\
                    ('http' not in url_chunk) and\
-                   ('#tlp' not in url_chunk):
+                   ('#tlp' not in url_chunk) and\
+                   (self.urls_visited.get(url_chunk, 0) == False): # <- compare short address to store from search
                 
-                    self.urls_visited[url] = 1
+                    self.urls_visited[url_chunk] = 1 # only shortened address stored
                     new_page = 'https://www.1001tracklists.com' + url_chunk
                     self.crawl(new_page, depth + 1)
                 
                 if ('/dj/' in url_chunk) and\
                    ('http' not in url_chunk) and\
-                   ('#tlp' not in url_chunk):
+                   ('#tlp' not in url_chunk) and\
+                   (self.urls_visited.get(url_chunk, 0) == False):
                 
-                    self.urls_visited[url] = 1
+                    self.urls_visited[url_chunk] = 1
                     new_page = 'https://www.1001tracklists.com' + url_chunk
                     self.crawl(new_page, depth + 1)
-                
+                    
                 if ('www.1001tracklists.com' in url_chunk) and\
                    ('#tlp' not in url_chunk) and\
-                   ('.xml' not in url_chunk):
-
-                    self.urls_visited[url] = 1
-                    self.crawl(url_chunk, depth + 1)
+                   ('.xml' not in url_chunk) and\
+                   (self.urls_visited.get(url_chunk, 0) == False):
                     
+                    self.urls_visited[url_chunk] = 1
+                    self.crawl(url_chunk, depth + 1)
+                        
             # Cache url-html map
             self.page_hash[url] = html
                     
